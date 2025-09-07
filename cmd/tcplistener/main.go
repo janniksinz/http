@@ -1,52 +1,11 @@
-package tcplistener
+package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
+	"ithink/internal/request"
 	"log"
 	"net"
 )
-
-func getLinesChannel(f io.ReadCloser) <-chan string {
-	out := make(chan string, 1)
-
-	go func() {
-		defer f.Close()
-		defer close(out)
-
-		str := ""
-		for {
-			buffer := make([]byte, 8)
-			n, err := f.Read(buffer) // reads into buffer and returns integer of bytes read
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				panic(err)
-			}
-
-			data := buffer[:n]
-			// if we find a newline index
-			if i := bytes.IndexByte(data, '\n'); i != -1 {
-				// only add data until the newline
-				str += string(data[:i])
-				data = data[i+1:]
-				out <- str // return line
-				str = ""   // reset
-			}
-
-			// add to line
-			str += string(data)
-		}
-		if len(str) != 0 {
-			out <- str // return line
-		}
-
-	}()
-
-	return out
-}
 
 func main() {
 	protocol := "tcp"
@@ -67,8 +26,15 @@ func main() {
 			//fmt.Printf("connection has been accepted: %s\n", conn)
 		}
 
-		for line := range getLinesChannel(conn) {
-			fmt.Printf("%s", line)
+		request, err := request.RequestFromReader(conn)
+		if err != nil {
+			log.Fatal("error", "error", err)
 		}
+
+		fmt.Printf("Request line:\n")
+		fmt.Printf("- Method: %s\n", request.RequestLine.Method)
+		fmt.Printf("- Target: %s\n", request.RequestLine.RequestTarget)
+		fmt.Printf("- Version: %s\n", request.RequestLine.HttpVersion)
+
 	}
 }
