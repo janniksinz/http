@@ -66,6 +66,7 @@ func (h *Headers) Parse(data []byte) (int, bool, error) {
 	done := false
 
 	for {
+		// read until \r\n registered nurse
 		idx := bytes.Index(data[read:], rn)
 		if idx == -1 {
 			break
@@ -78,11 +79,13 @@ func (h *Headers) Parse(data []byte) (int, bool, error) {
 			break
 		}
 
+		// parse header
 		name, value, err := parseHeader(data[read : read+idx])
 		if err != nil {
 			return 0, false, err
 		}
 
+		// check
 		if !isValidToken([]byte(name)) {
 			return 0, false, fmt.Errorf("malformed header name")
 		}

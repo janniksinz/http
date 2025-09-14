@@ -7,7 +7,7 @@ import (
 )
 
 func TestHeaderParser(t *testing.T) {
-	// Test: Valid single header
+	// Test: Valid multi header
 	headers := NewHeaders()
 	data := []byte("Host: localhost:42069\r\nFooFoo:    barbar      \r\n\r\n")
 	n, done, err := headers.Parse(data)
@@ -18,7 +18,7 @@ func TestHeaderParser(t *testing.T) {
 	assert.Equal(t, 50, n)
 	assert.True(t, done)
 
-	// Test: Valid single header
+	// Test: Valid multi header
 	headers = NewHeaders()
 	data = []byte("Host: localhost:42069\r\nFooFoo:barbar\r\n\r\n")
 	n, done, err = headers.Parse(data)
