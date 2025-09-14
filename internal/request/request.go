@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"ithink/internal/headers"
-	"log/slog"
 )
 
 type RequestLine struct {
@@ -112,7 +111,6 @@ func (r *Request) parse(data []byte) (int, error) {
 outer:
 	for {
 		currentData := data[read:]
-		slog.Info("parse", "currentData", currentData)
 		switch r.state {
 		case StateError:
 			return 0, ERROR_REQUEST_IN_ERROR_STATE
