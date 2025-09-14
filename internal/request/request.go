@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"ithink/internal/headers"
+	"log/slog"
 )
 
 type RequestLine struct {
@@ -23,12 +25,14 @@ const (
 
 type Request struct {
 	RequestLine RequestLine
+	Headers     headers.Headers
 	state       parserState
 }
 
 func newRequest() *Request {
 	return &Request{
-		state: StateInit,
+		state:   StateInit,
+		Headers: *headers.NewHeaders(),
 	}
 }
 
@@ -45,24 +49,20 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	bufLen := 0
 	for !request.done() {
 		n, err := reader.Read(buff[bufLen:])
-		// TODO: what to do with error?
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return nil, err
 		}
-
-		// parse buffer
-		bufLen += n // discard already parsed data
-		readN, err := request.parse(buff[:bufLen])
-		if err != nil {
-			return nil, err
+		bufLen += n
+		readN, parseErr := request.parse(buff[:bufLen])
+		if parseErr != nil {
+			return nil, parseErr
 		}
-
-		// move remaining data to the beginning
 		copy(buff, buff[readN:bufLen])
 		bufLen -= readN
-
+		if err == io.EOF {
+			break
+		}
 	}
-
 	return request, nil
 
 }
@@ -111,12 +111,13 @@ func (r *Request) parse(data []byte) (int, error) {
 	read := 0
 outer:
 	for {
+		currentData := data[read:]
+		slog.Info("parse", "currentData", currentData)
 		switch r.state {
 		case StateError:
 			return 0, ERROR_REQUEST_IN_ERROR_STATE
 		case StateInit:
-			// parse data starting from read index
-			rl, n, err := parseRequestLine(data[read:])
+			rl, n, err := parseRequestLine(currentData)
 			if err != nil {
 				r.state = StateError
 				return 0, err
@@ -126,16 +127,27 @@ outer:
 			}
 			r.RequestLine = *rl
 			read += n
-			r.state = StateDone
+			r.state = StateHeaders
 		case StateHeaders:
-
+			n, done, err := r.Headers.Parse(currentData)
+			if err != nil {
+				r.state = StateError
+				return 0, err
+			}
+			if n == 0 {
+				break outer
+			}
+			read += n
+			if done {
+				r.state = StateDone
+			}
 		case StateDone:
 			break outer
 		default:
 			panic("somehow we have a bad state machine")
 		}
 	}
-	return 0, nil
+	return read, nil
 }
 
 func (r *Request) done() bool {
