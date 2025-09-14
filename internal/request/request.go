@@ -15,9 +15,10 @@ type RequestLine struct {
 type parserState string
 
 const (
-	StateInit  parserState = "init"
-	StateDone  parserState = "done"
-	StateError parserState = "error"
+	StateInit    parserState = "init"
+	StateHeaders parserState = "headers"
+	StateDone    parserState = "done"
+	StateError   parserState = "error"
 )
 
 type Request struct {
@@ -126,8 +127,12 @@ outer:
 			r.RequestLine = *rl
 			read += n
 			r.state = StateDone
+		case StateHeaders:
+
 		case StateDone:
 			break outer
+		default:
+			panic("somehow we have a bad state machine")
 		}
 	}
 	return 0, nil
