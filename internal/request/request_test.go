@@ -50,9 +50,15 @@ func TestParseHeaders(t *testing.T) {
 	r, err := RequestFromReader(reader)
 	require.NoError(t, err)
 	require.NotNil(t, r)
-	assert.Equal(t, "localhost:42069", r.Headers.Get("host"))
-	assert.Equal(t, "curl/7.81.0", r.Headers.Get("user-agent"))
-	assert.Equal(t, "*/*", r.Headers.Get("accept"))
+	host, ok := r.Headers.Get("Host")
+	assert.True(t, ok)
+	assert.Equal(t, "localhost:42069", host)
+	user, ok := r.Headers.Get("user-agent")
+	assert.True(t, ok)
+	assert.Equal(t, "curl/7.81.0", user)
+	accept, ok := r.Headers.Get("accept")
+	assert.True(t, ok)
+	assert.Equal(t, "*/*", accept)
 
 	// Test: Malformed Header
 	reader = &chunkReader{

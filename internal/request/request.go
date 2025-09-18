@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"ithink/internal/headers"
+	"strconv"
 )
 
 type RequestLine struct {
@@ -18,6 +19,7 @@ type parserState string
 const (
 	StateInit    parserState = "init"
 	StateHeaders parserState = "headers"
+	StateBody    parserState = "body"
 	StateDone    parserState = "done"
 	StateError   parserState = "error"
 )
@@ -25,7 +27,7 @@ const (
 type Request struct {
 	RequestLine RequestLine
 	Headers     headers.Headers
-	Body        []byte
+	Body        string
 	state       parserState
 }
 
@@ -127,6 +129,7 @@ outer:
 			r.RequestLine = *rl
 			read += n
 			r.state = StateHeaders
+
 		case StateHeaders:
 			n, done, err := r.Headers.Parse(currentData)
 			if err != nil {
@@ -140,6 +143,14 @@ outer:
 			if done {
 				r.state = StateDone
 			}
+
+		case StateBody:
+			// get length
+			length := getInt(r.Headers, "content-length", 0)
+			if length == 0 {
+				r.state = StateDone
+			}
+
 		case StateDone:
 			break outer
 		default:
@@ -151,4 +162,17 @@ outer:
 
 func (r *Request) done() bool {
 	return r.state == StateDone || r.state == StateError
+}
+
+func getInt(headers headers.Headers, name string, defaultValue int) int {
+	valueStr, ok := headers.Get(name)
+	if !ok {
+		return defaultValue
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if err != nil {
+		return defaultValue
+	}
+	return value
 }
