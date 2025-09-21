@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"ithink/internal/headers"
+	"log/slog"
 	"strconv"
 )
 
@@ -35,6 +36,7 @@ func newRequest() *Request {
 	return &Request{
 		state:   StateInit,
 		Headers: *headers.NewHeaders(),
+		Body:    "",
 	}
 }
 
@@ -51,7 +53,10 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	bufLen := 0
 	for !request.done() {
 		n, err := reader.Read(buff[bufLen:])
-		if err != nil && err != io.EOF {
+		// TODO: what to do here?
+		// what happens if we unexpectedly crash?
+		// currently we do not close the connection no matter what
+		if err != nil {
 			return nil, err
 		}
 		bufLen += n
@@ -114,6 +119,9 @@ func (r *Request) parse(data []byte) (int, error) {
 outer:
 	for {
 		currentData := data[read:]
+		if len(currentData) == 0 {
+			break outer
+		}
 		switch r.state {
 		case StateError:
 			return 0, ERROR_REQUEST_IN_ERROR_STATE
@@ -141,13 +149,32 @@ outer:
 			}
 			read += n
 			if done {
-				r.state = StateDone
+				// r.state = StateDone
+				length := getInt(r.Headers, "content-length", 0)
+				if length > 0 {
+					r.state = StateBody
+				} else {
+					r.state = StateDone
+				}
 			}
 
 		case StateBody:
 			// get length
 			length := getInt(r.Headers, "content-length", 0)
+			// we have no Body -> StateDone
 			if length == 0 {
+				r.state = StateDone
+				break
+			}
+
+			// we convert the bytes to string
+			remaining := min(length-len(r.Body), len(currentData)) // min of what's left of the content-length or more concurrent incomming data
+			r.Body += string(currentData[:remaining])
+			read += remaining
+
+			slog.Info("parse#StateBody", "remaining", remaining, "read", read, "body", r.Body)
+
+			if len(r.Body) == length {
 				r.state = StateDone
 			}
 

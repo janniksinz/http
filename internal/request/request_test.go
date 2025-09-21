@@ -53,9 +53,11 @@ func TestParseHeaders(t *testing.T) {
 	host, ok := r.Headers.Get("Host")
 	assert.True(t, ok)
 	assert.Equal(t, "localhost:42069", host)
+
 	user, ok := r.Headers.Get("user-agent")
 	assert.True(t, ok)
 	assert.Equal(t, "curl/7.81.0", user)
+
 	accept, ok := r.Headers.Get("accept")
 	assert.True(t, ok)
 	assert.Equal(t, "*/*", accept)
