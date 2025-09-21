@@ -109,6 +109,12 @@ func parseRequestLine(b []byte) (*RequestLine, int, error) {
 	return rl, read, nil
 }
 
+func (r *Request) hasBody() bool {
+	// TODO: when doing chunked encoding, update this method
+	length := getInt(r.Headers, "content-length", 0)
+	return length > 0
+}
+
 /*
 returns:
 
@@ -151,8 +157,7 @@ dance:
 			read += n
 			if done {
 				// r.state = StateDone
-				length := getInt(r.Headers, "content-length", 0)
-				if length > 0 {
+				if r.hasBody() {
 					r.state = StateBody
 				} else {
 					r.state = StateDone
@@ -164,8 +169,7 @@ dance:
 			length := getInt(r.Headers, "content-length", 0)
 			// we have no Body -> StateDone
 			if length == 0 {
-				r.state = StateDone
-				break
+				panic("chunked not implemented")
 			}
 
 			// we convert the bytes to string
