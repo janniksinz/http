@@ -116,11 +116,11 @@ returns:
 */
 func (r *Request) parse(data []byte) (int, error) {
 	read := 0
-outer:
+dance:
 	for {
 		currentData := data[read:]
 		if len(currentData) == 0 {
-			break outer
+			break dance
 		}
 		switch r.state {
 		case StateError:
@@ -132,7 +132,7 @@ outer:
 				return 0, err
 			}
 			if n == 0 {
-				break outer
+				break dance
 			}
 			r.RequestLine = *rl
 			read += n
@@ -145,7 +145,7 @@ outer:
 				return 0, err
 			}
 			if n == 0 {
-				break outer
+				break dance
 			}
 			read += n
 			if done {
@@ -179,7 +179,7 @@ outer:
 			}
 
 		case StateDone:
-			break outer
+			break dance
 		default:
 			panic("somehow we have a bad state machine")
 		}
