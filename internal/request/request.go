@@ -52,9 +52,10 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	buff := make([]byte, 1024)
 	bufLen := 0
 	for !request.done() {
+		slog.Info("RequestFromReader", "state", request.state)
 		n, err := reader.Read(buff[bufLen:])
 		// TODO: what to do here?
-		// what happens if we unexpectedly crash?
+		// what happens if we unexpectedly receive an EOF?
 		// currently we do not close the connection no matter what
 		if err != nil {
 			return nil, err

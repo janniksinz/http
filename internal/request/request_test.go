@@ -93,7 +93,7 @@ func TestParseBody(t *testing.T) {
 			"Content-Length: 20\r\n" +
 			"\r\n" +
 			"partial content",
-		numBytesPerRead: 3,
+		numBytesPerRead: 5,
 	}
 	r, err = RequestFromReader(reader)
 	require.Error(t, err)
