@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net"
 )
 
@@ -50,26 +49,25 @@ func getLinesChannel(f io.ReadCloser) <-chan string {
 
 func main() {
 	protocol := "udp"
-	addr := ":42069"
 	//listener, err := net.ResolveUDPAddr(protocol, addr)
-	listener, err := net.Listen(protocol, addr)
+	addr := net.UDPAddr{Port: 42069}
+
+	conn, err := net.ListenUDP(protocol, &addr)
 	if err != nil {
-		log.Fatal("error", "error", err)
+		fmt.Printf("couldn't establish connection")
 	}
-	defer listener.Close()
+	defer conn.Close()
 	defer fmt.Printf("connection closed")
 
-	for {
-		// accept connection
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Fatal("error", "error", err)
-		} else {
-			//fmt.Printf("connection has been accepted: %s\n", conn)
-		}
+	buf := make([]byte, 1024)
 
-		for line := range getLinesChannel(conn) {
-			fmt.Printf("%s", line)
-		}
+	for {
+		n, client, _ := conn.ReadFromUDP(buf)
+		conn.WriteToUDP(buf[:n], client)
+
 	}
+
+	//for line := range getLinesChannel(conn) {
+	//	fmt.Printf("%s", line)
+	//}
 }
