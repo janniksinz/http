@@ -3,9 +3,9 @@ package server
 import (
 	"fmt"
 	"io"
+	"ithink/internal/response"
 	"log/slog"
 	"net"
-	"time"
 )
 
 type Server struct {
@@ -13,16 +13,20 @@ type Server struct {
 	closed bool
 }
 
+// the handle function
 func runConnection(s *Server, conn io.ReadWriteCloser) {
 	defer conn.Close()
 	slog.Info("runConnection#")
-	out := []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello World!")
-	_, err := conn.Write(out)
-	if err != nil {
-		slog.Error("write error", "error", err)
-	}
-	slog.Info("Return", "Res:", string(out))
-	time.Sleep(10 * time.Millisecond)
+
+	headers := response.GetDefaultHeaders(0)
+	response.WriteStatusLine(conn, response.StatusOK)
+	response.WriteHeaders(conn, headers)
+
+	//out := []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello World!")
+	//_, err := conn.Write(out)
+	//if err != nil {
+	//slog.Error("write error", "error", err)
+	//}
 }
 
 func runServer(s *Server, listener net.Listener) { // go routine doesn't need error
