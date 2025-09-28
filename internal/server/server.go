@@ -1,24 +1,65 @@
 package server
 
 import (
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
+	"fmt"
+	"io"
+	"ithink/internal/response"
+	"log/slog"
+	"net"
 )
 
-const port = 42069
+type Server struct {
+	state  string
+	closed bool
+}
 
-func main() {
-	server, err := server.Serve(port)
-	if err != nil {
-		log.Fatalf("Error starting server: %v", err)
+// the handle function
+func runConnection(s *Server, conn io.ReadWriteCloser) {
+	defer conn.Close()
+	slog.Info("runConnection#")
+
+	headers := response.GetDefaultHeaders(0)
+	response.WriteStatusLine(conn, response.StatusOK)
+	response.WriteHeaders(conn, headers)
+
+	//out := []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello World!")
+	//_, err := conn.Write(out)
+	//if err != nil {
+	//slog.Error("write error", "error", err)
+	//}
+}
+
+func runServer(s *Server, listener net.Listener) { // go routine doesn't need error
+	slog.Info("runServer#")
+
+	// listener
+	for {
+		conn, err := listener.Accept()
+		if s.closed {
+			return
+		}
+		if err != nil {
+			return
+		}
+
+		go runConnection(s, conn) // go routine to
 	}
-	defer server.Close()
-	log.Println("Server started on port", port)
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
-	log.Println("Server gracefully stopped")
+}
+
+func Serve(port uint16) (*Server, error) {
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return nil, err
+	}
+
+	server := &Server{closed: false}
+	go runServer(server, listener) // go routine
+
+	return server, nil
+}
+
+func (s *Server) Close() error {
+	s.closed = true
+	return nil
 }
