@@ -45,8 +45,8 @@ func (s *Server) handle(conn io.ReadWriteCloser) {
 	var status response.StatusCode = response.StatusOK
 	if handlerError != nil {
 		slog.Info("HandlerError", "error", handlerError)
-		status = handlerError.StatusCode
-		body = []byte(handlerError.Message)
+		status = handlerError.StatusCode    // set Error Code
+		body = []byte(handlerError.Message) // set Error Message
 	} else {
 		body = writer.Bytes()
 	}
