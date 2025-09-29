@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"ithink/internal/headers"
+	"ithink/internal/request"
 	"log/slog"
 )
 
@@ -21,6 +22,12 @@ const (
 	StatusBadRequest          StatusCode = 400
 	StatusInternalServerError StatusCode = 500
 )
+
+type HandlerError struct {
+	StatusCode StatusCode
+	Message    string
+}
+type Handler func(w io.Writer, req *request.Request) *HandlerError
 
 func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	statusLine := []byte{}

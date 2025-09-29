@@ -1,35 +1,63 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"ithink/internal/request"
 	"ithink/internal/response"
 	"log/slog"
 	"net"
 )
 
 type Server struct {
-	state  string
-	closed bool
+	closed  bool
+	handler Handler
 }
 
+type HandlerError struct {
+	StatusCode response.StatusCode
+	Message    string
+}
+
+type Handler func(w io.Writer, req *request.Request) *HandlerError
+
 // the handle function
-func runConnection(s *Server, conn io.ReadWriteCloser) {
+func (s *Server) handle(conn io.ReadWriteCloser) {
 	defer conn.Close()
 	slog.Info("runConnection#")
 
-	headers := response.GetDefaultHeaders(0)
-	response.WriteStatusLine(conn, response.StatusOK)
-	response.WriteHeaders(conn, headers)
+	// get request
+	headers := response.GetDefaultHeaders(0)                       // get default headers
+	req, RequestFromReaderError := request.RequestFromReader(conn) // read the request
+	if RequestFromReaderError != nil {
+		slog.Info("RequestFromReaderError", "error", RequestFromReaderError)
+		response.WriteStatusLine(conn, response.StatusBadRequest)
+		response.WriteHeaders(conn, headers)
+		return
+	}
 
-	//out := []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello World!")
-	//_, err := conn.Write(out)
-	//if err != nil {
-	//slog.Error("write error", "error", err)
-	//}
+	// handle request
+	writer := bytes.NewBuffer([]byte{})    // create a buffer to write to (becomes a writer)
+	handlerError := s.handler(writer, req) // call the handler function
+
+	var body []byte = nil
+	var status response.StatusCode = response.StatusOK
+	if handlerError != nil {
+		slog.Info("HandlerError", "error", handlerError)
+		status = handlerError.StatusCode
+		body = []byte(handlerError.Message)
+	} else {
+		body = writer.Bytes()
+	}
+
+	headers.Replace("Content-Length", fmt.Sprintf("%d", len(body))) // replace the content-length
+	response.WriteStatusLine(conn, status)                          // write status line
+	response.WriteHeaders(conn, headers)                            // write headers
+	conn.Write(body)                                                // write the body
 }
 
-func runServer(s *Server, listener net.Listener) { // go routine doesn't need error
+func listen(s *Server, listener net.Listener) { // go routine doesn't need error
 	slog.Info("runServer#")
 
 	// listener
@@ -42,19 +70,22 @@ func runServer(s *Server, listener net.Listener) { // go routine doesn't need er
 			return
 		}
 
-		go runConnection(s, conn) // go routine to
+		go s.handle(conn) // go routine to
 	}
 
 }
 
-func Serve(port uint16) (*Server, error) {
+func Serve(port uint16, handler Handler) (*Server, error) {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, err
 	}
 
-	server := &Server{closed: false}
-	go runServer(server, listener) // go routine
+	server := &Server{
+		closed:  false,
+		handler: handler,
+	}
+	go listen(server, listener) // go routine
 
 	return server, nil
 }
