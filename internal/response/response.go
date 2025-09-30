@@ -72,3 +72,15 @@ func WriteHeaders(w io.Writer, headers *headers.Headers) error {
 
 	return err
 }
+
+// WRITER functions
+type Writer struct{}
+
+// can write a custom status line
+func (w *Writer) WriteStatusLine(statusCode StatusCode) error
+
+// can write custom headers
+func (w *Writer) WriteHeaders(h headers.Headers) error
+
+// can write a custom body
+func (w *Writer) WriteBody(p []byte) (int, error)
