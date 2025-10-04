@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"ithink/internal/headers"
-	"ithink/internal/request"
 	"log/slog"
 )
 
@@ -23,12 +22,6 @@ const (
 	StatusInternalServerError StatusCode = 500
 )
 
-type HandlerError struct {
-	StatusCode StatusCode
-	Message    string
-}
-type Handler func(w io.Writer, req *request.Request) *HandlerError
-
 func GetDefaultHeaders(contentLen int) *headers.Headers {
 	h := headers.NewHeaders()
 
@@ -45,6 +38,10 @@ func GetDefaultHeaders(contentLen int) *headers.Headers {
 // WRITER functions
 type Writer struct {
 	writer io.Writer
+}
+
+func NewWriter(writer io.Writer) *Writer {
+	return &Writer{writer: writer}
 }
 
 // can write a custom status line
