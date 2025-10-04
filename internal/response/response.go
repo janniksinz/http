@@ -29,7 +29,26 @@ type HandlerError struct {
 }
 type Handler func(w io.Writer, req *request.Request) *HandlerError
 
-func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
+func GetDefaultHeaders(contentLen int) *headers.Headers {
+	h := headers.NewHeaders()
+
+	h.Set("Content-Length", fmt.Sprintf("%d", contentLen))
+	h.Set("Connection", "close")
+	h.Set("Content-Type", "text/plain")
+	slog.Info("GettingDefaultHeaders", "h", h)
+
+	return h
+}
+
+// take a poiner to the headers map, iterates over it and writes them to the writer
+
+// WRITER functions
+type Writer struct {
+	writer io.Writer
+}
+
+// can write a custom status line
+func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
 	statusLine := []byte{}
 	switch statusCode {
 	case StatusOK:
@@ -43,44 +62,33 @@ func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	}
 
 	slog.Info("WritingStatusLine", "statusLine", statusLine)
-	_, err := w.Write(statusLine)
+	_, err := w.writer.Write(statusLine)
 	return err
 }
 
-func GetDefaultHeaders(contentLen int) *headers.Headers {
-	h := headers.NewHeaders()
-
-	h.Set("Content-Length", fmt.Sprintf("%d", contentLen))
-	h.Set("Connection", "close")
-	h.Set("Content-Type", "text/plain")
-	slog.Info("GettingDefaultHeaders", "h", h)
-
-	return h
-}
-
-// take a poiner to the headers map, iterates over it and writes them to the writer
-func WriteHeaders(w io.Writer, headers *headers.Headers) error {
+// can write custom headers
+func (w *Writer) WriteHeaders(h headers.Headers) error {
 	var err error = nil
 	b := []byte{}
 
-	headers.ForEach(func(n, v string) {
+	h.ForEach(func(n, v string) {
 		b = fmt.Appendf(b, "%s: %s\r\n", n, v)
 	})
 	b = fmt.Appendf(b, "\r\n")
-	slog.Info("WritingHeaders", "headers", b)
-	w.Write(b)
+
+	slog.Info("WriteHeaders", "headers", b)
+	w.writer.Write(b)
 
 	return err
 }
 
-// WRITER functions
-type Writer struct{}
-
-// can write a custom status line
-func (w *Writer) WriteStatusLine(statusCode StatusCode) error
-
-// can write custom headers
-func (w *Writer) WriteHeaders(h headers.Headers) error
-
 // can write a custom body
-func (w *Writer) WriteBody(p []byte) (int, error)
+func (w *Writer) WriteBody(p []byte) (int, error) {
+	slog.Info("WriteBody", "body", p)
+	n, err := w.writer.Write(p)
+	if err != nil {
+	}
+
+	// write header length
+	return n, nil
+}
