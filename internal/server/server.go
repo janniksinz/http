@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"ithink/internal/request"
@@ -20,41 +19,26 @@ type HandlerError struct {
 	Message    string
 }
 
-type Handler func(w io.Writer, req *request.Request) *HandlerError
+type Handler func(w *response.Writer, req *request.Request)
 
 // the handle function
 func (s *Server) handle(conn io.ReadWriteCloser) {
 	defer conn.Close()
 	slog.Info("runConnection#")
 
+	responseWriter := response.NewWriter(conn)
 	// get request
-	headers := response.GetDefaultHeaders(0)                       // get default headers
 	req, RequestFromReaderError := request.RequestFromReader(conn) // read the request
 	if RequestFromReaderError != nil {
 		slog.Info("RequestFromReaderError", "error", RequestFromReaderError)
-		response.WriteStatusLine(conn, response.StatusBadRequest)
-		response.WriteHeaders(conn, headers)
+		responseWriter.WriteStatusLine(response.StatusBadRequest)
+		responseWriter.WriteHeaders(*response.GetDefaultHeaders(0))
 		return
 	}
 
 	// handle request
-	writer := bytes.NewBuffer([]byte{})    // create a buffer to write to (becomes a writer)
-	handlerError := s.handler(writer, req) // call the handler function
-
-	var body []byte = nil
-	var status response.StatusCode = response.StatusOK
-	if handlerError != nil {
-		slog.Info("HandlerError", "error", handlerError)
-		status = handlerError.StatusCode    // set Error Code
-		body = []byte(handlerError.Message) // set Error Message
-	} else {
-		body = writer.Bytes()
-	}
-
-	headers.Replace("Content-Length", fmt.Sprintf("%d", len(body))) // replace the content-length
-	response.WriteStatusLine(conn, status)                          // write status line
-	response.WriteHeaders(conn, headers)                            // write headers
-	conn.Write(body)                                                // write the body
+	//writer := bytes.NewBuffer([]byte{}) // create a buffer to write to (becomes a writer)
+	s.handler(responseWriter, req) // call the handler function
 }
 
 func listen(s *Server, listener net.Listener) { // go routine doesn't need error

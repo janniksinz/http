@@ -47,6 +47,10 @@ type Writer struct {
 	writer io.Writer
 }
 
+func NewWriter(writer io.Writer) *Writer {
+	return &Writer{writer: writer}
+}
+
 // can write a custom status line
 func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
 	statusLine := []byte{}
