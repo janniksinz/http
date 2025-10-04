@@ -27,13 +27,13 @@ func GetDefaultHeaders(contentLen int) *headers.Headers {
 
 	h.Set("Content-Length", fmt.Sprintf("%d", contentLen))
 	h.Set("Connection", "close")
-	h.Set("Content-Type", "text/plain")
+	h.Set("Content-Type", "text/html")
 	slog.Info("GettingDefaultHeaders", "h", h)
 
 	return h
 }
 
-// take a poiner to the headers map, iterates over it and writes them to the writer
+// take a pointer to the headers map, iterates over it and writes them to the writer
 
 // WRITER functions
 type Writer struct {
@@ -84,6 +84,7 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 	slog.Info("WriteBody", "body", p)
 	n, err := w.writer.Write(p)
 	if err != nil {
+		return 0, err
 	}
 
 	// write header length
