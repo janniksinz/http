@@ -58,7 +58,7 @@ func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
 		return fmt.Errorf("unrecognized error code")
 	}
 
-	slog.Info("WritingStatusLine", "statusLine", statusLine)
+	slog.Info("WritingStatusLine\r\n", "statusLine", statusLine)
 	_, err := w.writer.Write(statusLine)
 	return err
 }
@@ -73,7 +73,7 @@ func (w *Writer) WriteHeaders(h headers.Headers) error {
 	})
 	b = fmt.Appendf(b, "\r\n")
 
-	slog.Info("WriteHeaders", "headers", b)
+	slog.Info("WriteHeaders\r\n", "headers", b)
 	w.writer.Write(b)
 
 	return err
@@ -81,7 +81,7 @@ func (w *Writer) WriteHeaders(h headers.Headers) error {
 
 // can write a custom body
 func (w *Writer) WriteBody(p []byte) (int, error) {
-	slog.Info("WriteBody", "body", p)
+	slog.Info("WriteBody\r\n", "body", p)
 	n, err := w.writer.Write(p)
 	if err != nil {
 		return 0, err
@@ -92,5 +92,9 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 }
 
 // INFO: chunked encoding is a sequence of 0xFF hex byte lengths \r\n followed by the specified amount of bytes as the payload
-func (w *Writer) WriteChunkedBody(p []byte) (int, error) {}
-func (w *Writer) WriteChunkedBodyDone() (int, error)     {}
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	return 0, nil
+}
+func (w *Writer) WriteChunkedBodyDone() (int, error) {
+	return 0, nil
+}

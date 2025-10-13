@@ -65,7 +65,7 @@ func main() {
 			status = response.StatusInternalServerError
 		} else if strings.HasPrefix(req.RequestLine.RequestTarget, "/httpbin/stream") {
 			target := req.RequestLine.RequestTarget
-			res, err := http.Get("https://httpbin.org/" + target[len("/httpbin/stream"):])
+			res, err := http.Get("https://httpbin.org/" + target[len("/httpbin/"):]) // make request with stream length
 			if err != nil {
 				body = respond500()
 				status = response.StatusInternalServerError
@@ -82,8 +82,13 @@ func main() {
 					if err != nil {
 						break
 					}
-					w.WriteBody([]byte("0\r\n\r\n")) // zero length body
+
+					w.WriteBody([]byte(fmt.Sprintf("%x\r\n", n)))
+					w.WriteBody(data[:n])
+					w.WriteBody([]byte("\r\n"))
 				}
+				w.WriteBody([]byte("0\r\n\r\n")) // zero length body at the end
+				return
 			}
 		}
 		h.Replace("Content-Length", fmt.Sprintf("%d", len(body)))
