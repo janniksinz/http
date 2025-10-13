@@ -6,8 +6,10 @@ import (
 	"ithink/internal/response"
 	"ithink/internal/server"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -61,6 +63,28 @@ func main() {
 		} else if req.RequestLine.RequestTarget == "/myproblem" {
 			body = respond500()
 			status = response.StatusInternalServerError
+		} else if strings.HasPrefix(req.RequestLine.RequestTarget, "/httpbin/stream") {
+			target := req.RequestLine.RequestTarget
+			res, err := http.Get("https://httpbin.org/" + target[len("/httpbin/stream"):])
+			if err != nil {
+				body = respond500()
+				status = response.StatusInternalServerError
+			} else {
+				w.WriteStatusLine(response.StatusOK)
+				h.Delete("Content-Length")
+				h.Set("Transfer-Encoding", "chunked")
+				h.Replace("content-type", "text/plain")
+				w.WriteHeaders(*h)
+
+				for {
+					data := make([]byte, 32)
+					n, err := res.Body.Read(data)
+					if err != nil {
+						break
+					}
+					w.WriteBody([]byte("0\r\n\r\n")) // zero length body
+				}
+			}
 		}
 		h.Replace("Content-Length", fmt.Sprintf("%d", len(body)))
 		w.WriteStatusLine(status)

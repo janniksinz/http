@@ -90,3 +90,7 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 	// write header length
 	return n, nil
 }
+
+// INFO: chunked encoding is a sequence of 0xFF hex byte lengths \r\n followed by the specified amount of bytes as the payload
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {}
+func (w *Writer) WriteChunkedBodyDone() (int, error)     {}
